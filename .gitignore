@@ -1,0 +1,28 @@
+.vscode/
+.idea/
+.history
+.github
+
+
+### Environment files ###
+.env
+.env.local
+.env.*
+
+### Sensitive config (contains API keys, secrets) ###
+**/application-local.properties
+
+### Docker files ###
+docker-compose*.yml
+docker-compose*.yaml
+Dockerfile*
+*.dockerfile
+.dockerignore
+**/Dockerfile*
+**/.dockerignore
+
+### Test section ###
+**/src/test/
+src/test/
+
+git-sync-main-dev.txt

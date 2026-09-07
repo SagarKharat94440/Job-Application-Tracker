@@ -1,0 +1,74 @@
+package com.sagar.JobApplicationTracker.entity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import lombok.Data;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+@Data
+@Entity
+@Table(name = "career_resources")
+public class CareerResource {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @JdbcTypeCode(SqlTypes.CHAR)
+    @Column(length = 36, columnDefinition = "VARCHAR(36)")
+    private UUID id;
+
+    @Column(nullable = false, length = 180)
+    private String title;
+
+    @Column(nullable = false, length = 2048)
+    private String url;
+
+    @Column(nullable = false, length = 16)
+    private String resourceType = "LINK";
+
+    @Column(nullable = false, length = 80)
+    private String category;
+
+    @Column(length = 1200)
+    private String description;
+
+    @Column(length = 255)
+    private String originalFileName;
+
+    private Long fileSizeBytes;
+
+    @Column(nullable = false)
+    private String submittedByEmail;
+
+    @Column(nullable = false)
+    private String submittedByName;
+
+    @Column(nullable = false)
+    private LocalDateTime createdAt;
+
+    @Column(length = 100)
+    private String location;
+
+    @Column(length = 100)
+    private String company;
+
+    private LocalDateTime eventDate;
+
+    @Column(nullable = false, length = 20, columnDefinition = "varchar(20) default 'RESOURCE'")
+    private String listingType = "RESOURCE";
+
+    @PrePersist
+    public void prePersist() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
+}

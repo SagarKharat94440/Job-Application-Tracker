@@ -1,0 +1,69 @@
+package com.sagar.JobApplicationTracker.repo;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import com.sagar.JobApplicationTracker.dto.DashboardStatsDTO;
+import com.sagar.JobApplicationTracker.entity.Job;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+
+public interface JobRepository extends JpaRepository<Job, UUID> {
+
+	List<Job> findByUserEmailOrderByUpdatedAtDesc(String userEmail);
+	
+	@Query("SELECT j FROM Job j WHERE j.userEmail = :email " +
+	           "AND (:status IS NULL OR j.status = :status) " +
+	           "AND (LOWER(j.company) LIKE LOWER(CONCAT('%', :search, '%')) " +
+	           "OR LOWER(j.role) LIKE LOWER(CONCAT('%', :search, '%')) " +
+	           "OR LOWER(j.location) LIKE LOWER(CONCAT('%', :search, '%')))")
+	    Page<Job> findWithFilters(
+	        @Param("email") String email, 
+	        @Param("search") String search, 
+	        @Param("status") String status, 
+	        Pageable pageable
+	    );
+
+	@Query("""
+			   SELECT new com.sagar.JobApplicationTracker.dto.DashboardStatsDTO(
+			       COUNT(j), 
+			       SUM(CASE WHEN j.status NOT IN ('Rejected', 'Offer Received') THEN 1L ELSE 0L END),
+			       SUM(CASE WHEN j.status = 'Interview Scheduled' OR j.stage >= 3 THEN 1L ELSE 0L END),
+			       SUM(CASE WHEN j.status = 'Interview Scheduled' THEN 1L ELSE 0L END),
+			       SUM(CASE WHEN j.status = 'Offer Received' THEN 1L ELSE 0L END)
+			   )
+			   FROM Job j
+			   WHERE j.userEmail = :email
+			""")
+	DashboardStatsDTO getStatsByEmail(@Param("email") String email);
+	
+	@Query("SELECT DISTINCT j.userEmail FROM Job j WHERE j.updatedAt < :cutoff AND j.status NOT IN ('Rejected', 'Offer Received')")
+	List<String> findUserEmailsWithStaleJobs(@Param("cutoff") LocalDateTime cutoff);
+
+	@Modifying(clearAutomatically = true, flushAutomatically = true)
+	@Query("""
+			    UPDATE Job j 
+			    SET j.status = 'Rejected', 
+			        j.stageStatus = 'failed', 
+			        j.updatedAt = :now, 
+			        j.notes = CONCAT(COALESCE(j.notes, ''), :note) 
+			    WHERE j.updatedAt < :cutoff 
+			      AND j.status NOT IN ('Rejected', 'Offer Received')
+			""")
+	void markStaleJobsAsRejected(
+			@Param("cutoff") LocalDateTime cutoff, 
+			@Param("now") LocalDateTime now, 
+			@Param("note") String note
+			);
+	
+	@Modifying(clearAutomatically = true, flushAutomatically = true)
+	@Query("DELETE FROM Job j WHERE j.userEmail = :email")
+	void deleteByUserEmail(@Param("email") String email);
+
+}
